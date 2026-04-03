@@ -62,6 +62,7 @@ function render() {
         const replace = hexToRgb(document.getElementById('replaceColor').value);
         const tolerance = parseInt(document.getElementById('tolerance').value);
 
+        // 4. C++関数を実行
         wasmModule._processImage(
             bufferPtr, canvas.width, canvas.height,
             target.r, target.g, target.b,
@@ -69,10 +70,18 @@ function render() {
             tolerance
         );
 
-        const resultPixels = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, bufferPtr, numBytes);
-        const resultImageData = new ImageData(resultPixels, canvas.width, canvas.height);
-        ctx.putImageData(resultImageData, 0, 0);
+        // --- ここから下を変更 ---
 
+        // 5. 処理後のデータをWasmのメモリから取得
+        const resultPixels = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, bufferPtr, numBytes);
+        
+        // 6. 既存の imageData（ステップ2で取得したもの）の中身を、Wasmの結果で直接上書きする！
+        imageData.data.set(resultPixels);
+        
+        // 7. 画面に描画
+        ctx.putImageData(imageData, 0, 0);
+
+        // 8. メモリ解放（描画用データにコピーし終わったので、Wasm側のメモリを安全に消せる）
         wasmModule._free(bufferPtr);
     } catch (err) {
         console.error("レンダリング中にエラー:", err);
