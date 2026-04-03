@@ -2,8 +2,9 @@ let wasmModule;
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const startBtn = document.getElementById('startBtn');
+const appDiv = document.getElementById('app');
 
-// 色（#ffffff形式）をRGB数値に変換するヘルパー
 const hexToRgb = (hex) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
@@ -11,19 +12,30 @@ const hexToRgb = (hex) => {
     return { r, g, b };
 };
 
-// Wasmの起動とカメラ開始
-createModule().then(Module => {
-    wasmModule = Module;
-    startCamera();
+// ボタンを押したときに処理を開始
+startBtn.addEventListener('click', async () => {
+    startBtn.innerText = "読み込み中...";
+    try {
+        // 1. Wasmの初期化を待つ
+        wasmModule = await createModule();
+        // 2. カメラを起動
+        await startCamera();
+        
+        // 成功したらボタンを消してアプリ画面を出す
+        startBtn.style.display = 'none';
+        appDiv.style.display = 'block';
+    } catch (err) {
+        // エラーが起きたらスマホ画面に表示！
+        alert("エラーが発生しました: " + err.message);
+    }
 });
 
 async function startCamera() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
     video.srcObject = stream;
     
-    // async を追加
-    video.onloadedmetadata = async () => {
-        await video.play(); // ← スマホのために明示的に再生を指示
+    video.onloadedmetadata = () => {
+        video.play();
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         render();
@@ -31,42 +43,40 @@ async function startCamera() {
 }
 
 function render() {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Canvasからピクセルデータを取得
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data; // Uint8ClampedArray
+    // 映像が停止中の場合はスキップ（これが固まるのを防ぐ）
+    if (video.paused || video.ended) {
+        requestAnimationFrame(render);
+        return;
+    }
 
-    // --- Wasm処理の核心部 ---
-    // 1. Wasm側のメモリに領域を確保
-    const numBytes = pixels.length;
-    const bufferPtr = wasmModule._malloc(numBytes);
+    try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
 
-    // 2. JSのデータをWasmメモリにコピー
-    wasmModule.HEAPU8.set(pixels, bufferPtr);
+        const numBytes = pixels.length;
+        const bufferPtr = wasmModule._malloc(numBytes);
+        wasmModule.HEAPU8.set(pixels, bufferPtr);
 
-    // 3. UIから現在の設定値を取得
-    const target = hexToRgb(document.getElementById('targetColor').value);
-    const replace = hexToRgb(document.getElementById('replaceColor').value);
-    const tolerance = parseInt(document.getElementById('tolerance').value);
+        const target = hexToRgb(document.getElementById('targetColor').value);
+        const replace = hexToRgb(document.getElementById('replaceColor').value);
+        const tolerance = parseInt(document.getElementById('tolerance').value);
 
-    // 4. C++関数を実行
-    wasmModule._processImage(
-        bufferPtr, canvas.width, canvas.height,
-        target.r, target.g, target.b,
-        replace.r, replace.g, replace.b,
-        tolerance
-    );
+        wasmModule._processImage(
+            bufferPtr, canvas.width, canvas.height,
+            target.r, target.g, target.b,
+            replace.r, replace.g, replace.b,
+            tolerance
+        );
 
-    // 5. 処理後のデータをWasmメモリからJS側に戻す
-    const resultPixels = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, bufferPtr, numBytes);
-    
-    // 6. 画面に描画
-    const resultImageData = new ImageData(resultPixels, canvas.width, canvas.height);
-    ctx.putImageData(resultImageData, 0, 0);
+        const resultPixels = new Uint8ClampedArray(wasmModule.HEAPU8.buffer, bufferPtr, numBytes);
+        const resultImageData = new ImageData(resultPixels, canvas.width, canvas.height);
+        ctx.putImageData(resultImageData, 0, 0);
 
-    // 7. メモリ解放（忘れるとブラウザが落ちます）
-    wasmModule._free(bufferPtr);
+        wasmModule._free(bufferPtr);
+    } catch (err) {
+        console.error("レンダリング中にエラー:", err);
+    }
 
     requestAnimationFrame(render);
 }
