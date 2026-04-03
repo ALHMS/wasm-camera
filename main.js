@@ -20,7 +20,10 @@ createModule().then(Module => {
 async function startCamera() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
     video.srcObject = stream;
-    video.onloadedmetadata = () => {
+    
+    // async を追加
+    video.onloadedmetadata = async () => {
+        await video.play(); // ← スマホのために明示的に再生を指示
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         render();
