@@ -84,7 +84,10 @@ function render() {
         // 8. メモリ解放（描画用データにコピーし終わったので、Wasm側のメモリを安全に消せる）
         wasmModule._free(bufferPtr);
     } catch (err) {
-        console.error("レンダリング中にエラー:", err);
+        // 画面の赤い文字エリアにエラーを表示する
+        document.getElementById('log').innerText = "Wasmエラー: " + err.message;
+        console.error(err);
+        return; // エラーが起きたらループを止める
     }
 
     requestAnimationFrame(render);

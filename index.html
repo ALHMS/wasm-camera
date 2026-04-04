@@ -20,17 +20,14 @@
     <button id="startBtn">カメラを起動する</button>
 
     <div id="app">
+        <div id="log" style="color: #ff5555; font-weight: bold; padding: 10px;"></div>
+        
         <canvas id="canvas"></canvas>
         <video id="video" playsinline muted></video>
 
-        <div class="controls">
-            <div>探す色: <input type="color" id="targetColor" value="#ff0000"></div>
-            <div>変える色: <input type="color" id="replaceColor" value="#00ff00"></div>
-            <div>許容誤差: <input type="range" id="tolerance" min="0" max="100" value="40"></div>
-        </div>
     </div>
 
-    <script src="processor.js"></script>
+    <script src="processor_v2.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
