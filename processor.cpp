@@ -1,4 +1,5 @@
 #include <emscripten.h>
+#include <cmath>
 
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
@@ -10,14 +11,19 @@ extern "C" {
         int size = width * height * 4;
 
         for (int i = 0; i < size; i += 4) {
-            // ピクセルのX座標（横の位置）を計算
-            int x = (i / 4) % width;
+            int r = data[i];
+            int g = data[i + 1];
+            int b = data[i + 2];
 
-            // 画面の左半分 (x < width / 2) なら、強制的に青色にする
-            if (x < width / 2) {
-                data[i]     = 0;   // R
-                data[i + 1] = 0;   // G
-                data[i + 2] = 255; // B (真っ青)
+            // 指定色との距離を計算
+            if (std::abs(r - targetR) < tolerance && 
+                std::abs(g - targetG) < tolerance && 
+                std::abs(b - targetB) < tolerance) {
+                
+                // 色を置換
+                data[i]     = (unsigned char)replaceR;
+                data[i + 1] = (unsigned char)replaceG;
+                data[i + 2] = (unsigned char)replaceB;
             }
         }
     }

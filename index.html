@@ -9,9 +9,9 @@
         video { display: none; }
         canvas { width: 100%; max-width: 600px; border: 2px solid #555; background: #000; }
         .controls { margin: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-        /* スタートボタンのスタイル */
         #startBtn { padding: 20px 40px; font-size: 20px; margin-top: 50px; cursor: pointer; border-radius: 10px; background: #007bff; color: white; border: none; }
-        #app { display: none; } /* 最初は隠す */
+        #app { display: none; }
+        #log { color: #ff5555; font-weight: bold; padding: 10px; }
     </style>
 </head>
 <body>
@@ -20,14 +20,18 @@
     <button id="startBtn">カメラを起動する</button>
 
     <div id="app">
-        <div id="log" style="color: #ff5555; font-weight: bold; padding: 10px;"></div>
-        
+        <div id="log"></div>
         <canvas id="canvas"></canvas>
         <video id="video" playsinline muted></video>
 
+        <div class="controls">
+            <div>探す色: <input type="color" id="targetColor" value="#ff0000"></div>
+            <div>変える色: <input type="color" id="replaceColor" value="#00ff00"></div>
+            <div>許容誤差: <input type="range" id="tolerance" min="0" max="100" value="40"></div>
+        </div>
     </div>
 
-    <script src="processor_v2.js"></script>
+    <script src="processor.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
